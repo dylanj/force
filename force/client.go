@@ -100,6 +100,34 @@ func (c Client) buildRequestURL(path string) string {
 	return c.auth.InstanceURL + path
 }
 
+func (c *Client) Patch(path string, obj any) ([]byte, error) {
+	requestURL := c.buildRequestURL(path)
+
+	b, err := json.Marshal(obj)
+	if err != nil {
+		return nil, err
+	}
+
+	requestBody := bytes.NewReader(b)
+
+	req, err := http.NewRequest(http.MethodPatch, requestURL, requestBody)
+	if err != nil {
+		fmt.Printf("client: could not create request: %s\n", err)
+		return []byte{}, err
+	}
+
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer "+c.auth.AccessToken)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		fmt.Printf("client: error making http request: %s\n", err)
+		return []byte{}, nil
+	}
+
+	return io.ReadAll(resp.Body)
+}
+
 func (c *Client) Post(path string, obj any) ([]byte, error) {
 	requestURL := c.buildRequestURL(path)
 

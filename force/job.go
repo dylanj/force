@@ -162,3 +162,22 @@ func (c Client) GetAllJobs() (*QueryAllJobsResponse, error) {
 
 	return &resp, nil
 }
+
+type queryJobState struct {
+	State string `json:"state"`
+}
+
+func (c Client) AbortQueryJob(jobId string) (*QueryJobResponse, error) {
+	b, err := c.Patch("/services/data/v55.0/jobs/query/"+jobId, queryJobState{State: "Aborted"})
+	if err != nil {
+		return nil, err
+	}
+
+	resp := QueryJobResponse{}
+	err = json.Unmarshal(b, &resp)
+	if err != nil {
+		return nil, err
+	}
+
+	return &resp, nil
+}
