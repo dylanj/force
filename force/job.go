@@ -141,3 +141,24 @@ func (c *Client) QueryJob(query string) (*QueryJobResponse, error) {
 
 	return &resp, nil
 }
+
+type QueryAllJobsResponse struct {
+	Done           bool               `json:"done"`
+	Records        []QueryJobResponse `json:"records"`
+	NextRecordsURL string             `json:"nextRecordsUrl"`
+}
+
+func (c Client) GetAllJobs() (*QueryAllJobsResponse, error) {
+	b, err := c.Get("/services/data/v55.0/jobs/query")
+	if err != nil {
+		return nil, err
+	}
+
+	resp := QueryAllJobsResponse{}
+	err = json.Unmarshal(b, &resp)
+	if err != nil {
+		return nil, err
+	}
+
+	return &resp, nil
+}
