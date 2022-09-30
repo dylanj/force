@@ -4,11 +4,17 @@ import (
 	"bytes"
 	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/url"
 
 	"github.com/davecgh/go-spew/spew"
 )
+
+type ErrorResponse struct {
+	Message   string `json:"message"`
+	ErrorCode string `json:"errorCode"`
+}
 
 type QueryJobBody struct {
 	// Operation can be either query (non deleted) or queryAll (includes deleted
@@ -157,10 +163,22 @@ func (c Client) GetAllJobs() (*QueryAllJobsResponse, error) {
 	resp := QueryAllJobsResponse{}
 	err = json.Unmarshal(b, &resp)
 	if err != nil {
+		err = parseError(b)
 		return nil, err
 	}
 
 	return &resp, nil
+}
+
+func parseError(b []byte) error {
+	e := []ErrorResponse{}
+	json.Unmarshal(b, &e)
+
+	// todo: better error handling
+	if e[0].ErrorCode == "INVALID_SESSION_ID" {
+		return errors.New("invalid session")
+	}
+	return errors.New("generic error")
 }
 
 type queryJobState struct {
