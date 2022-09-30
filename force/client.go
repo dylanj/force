@@ -23,6 +23,7 @@ type AuthResponse struct {
 type Client struct {
 	httpClient http.Client
 	auth       AuthResponse
+	version    string
 }
 
 func (c *Client) AuthToken(instance, token string) (bool, error) {
@@ -93,6 +94,7 @@ func NewClient() Client {
 		httpClient: http.Client{
 			Timeout: 5 * time.Second,
 		},
+		version: "v56.0",
 	}
 }
 
