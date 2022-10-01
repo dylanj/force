@@ -5,7 +5,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/dylanj/force/force"
+	"github.com/dylanj/force"
 	_ "github.com/joho/godotenv/autoload"
 
 	"github.com/davecgh/go-spew/spew"
