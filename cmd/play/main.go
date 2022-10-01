@@ -3,8 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
+	"sync"
 
-	"github.com/dylanj/force"
+	"github.com/dylanj/force/force"
 	_ "github.com/joho/godotenv/autoload"
 
 	"github.com/davecgh/go-spew/spew"
@@ -30,6 +31,7 @@ func main() {
 		)
 	*/
 
+	//c.DebugAuth()
 	token := os.Getenv("TOKEN")
 	instance := os.Getenv("INSTANCE")
 
@@ -44,7 +46,44 @@ func main() {
 		fmt.Println("auth no beuno")
 	}
 
-	q, err := c.QueryJob("SELECT Id, Name FROM Account LIMIT 10")
+	//
+
+	var wg sync.WaitGroup // New wait group
+	wg.Add(3)             // Using two goroutines
+
+	// go save_page_to_html("https://scrapingbee.com/blog", "blog.html", &wg)
+	//  go save_page_to_html("https://scrapingbee.com/documentation", "documentation.html", &wg)
+
+	// wg.Wait()
+
+	go func() {
+		c.DescribeSObject("Account")
+		fmt.Println("Acc done")
+		wg.Done()
+	}()
+	go func() {
+		c.DescribeSObject("Contact")
+		fmt.Println("Con done")
+		wg.Done()
+	}()
+	go func() {
+		c.DescribeSObject("Opportunity")
+		fmt.Println("Opp done")
+		wg.Done()
+	}()
+
+	wg.Wait()
+
+	//r, err := c.Explain("SELECT Id, Name FROM Account LIMIT 1")
+}
+
+func TestCreateJobAndGetResults(c *force.Client) {
+	q, err := c.QueryJob("SELECT Id, Name FROM Account")
+	if err != nil {
+		fmt.Println("got an error")
+		spew.Dump(err)
+		os.Exit(1)
+	}
 
 	for {
 		q, err := c.QueryJobStatus(q.Id)

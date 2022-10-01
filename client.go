@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 type AuthResponse struct {
@@ -83,6 +85,10 @@ func (c *Client) Auth(host, username, password, token, clientId, clientSecret st
 	return true, nil
 }
 
+func (c *Client) DebugAuth() {
+	spew.Dump(c.auth)
+}
+
 func parseAuth(b []byte) (AuthResponse, error) {
 	a := AuthResponse{}
 	err := json.Unmarshal(b, &a)
@@ -92,7 +98,7 @@ func parseAuth(b []byte) (AuthResponse, error) {
 func NewClient() Client {
 	return Client{
 		httpClient: http.Client{
-			Timeout: 5 * time.Second,
+			Timeout: 30 * time.Second,
 		},
 		version: "v56.0",
 	}
