@@ -2,7 +2,6 @@ package force
 
 import (
 	"encoding/json"
-	"fmt"
 )
 
 type SObjectFilteredLookupInfo struct {
@@ -135,8 +134,6 @@ func (c Client) DescribeSObject(obj string) (SObjectDescription, error) {
 	if err != nil {
 		return SObjectDescription{}, err
 	}
-
-	fmt.Println(string(b))
 
 	r := SObjectDescription{}
 	err = json.Unmarshal(b, &r)
