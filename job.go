@@ -7,8 +7,6 @@ import (
 	"errors"
 	"io"
 	"net/url"
-
-	"github.com/davecgh/go-spew/spew"
 )
 
 type ErrorResponse struct {
@@ -76,7 +74,7 @@ func parseResults(b []byte) ([]map[string]string, error) {
 	return m, nil
 }
 
-func queryJobResults(c *Client, jobId string, callback func([]map[string]string)) error {
+func (c *Client) QueryJobResults(jobId string, callback func([]map[string]string)) error {
 	q := url.Values{}
 	q.Add("maxRecords", "1000")
 
@@ -103,14 +101,6 @@ func queryJobResults(c *Client, jobId string, callback func([]map[string]string)
 	}
 
 	return nil
-}
-
-func (c *Client) QueryJobResults(jobId string) string {
-	queryJobResults(c, jobId, func(results []map[string]string) {
-		spew.Dump(results)
-	})
-
-	return ""
 }
 
 func (c *Client) QueryJobStatus(jobId string) (*QueryJobResponse, error) {

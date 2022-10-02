@@ -101,5 +101,7 @@ func TestCreateJobAndGetResults(c *force.Client) {
 		fmt.Println("not finished")
 	}
 
-	c.QueryJobResults(q.Id)
+	c.QueryJobResults(q.Id, func(c []map[string]string) {
+		spew.Dump(c)
+	})
 }
