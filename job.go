@@ -170,9 +170,10 @@ func parseError(b []byte) error {
 
 	// todo: better error handling
 	if e[0].ErrorCode == "INVALID_SESSION_ID" {
-		return errors.New("invalid session")
+		return errors.New("invalid session" + string(b))
 	}
-	return errors.New("generic error")
+
+	return errors.New("generic: " + string(b))
 }
 
 type queryJobState struct {
