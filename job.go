@@ -134,6 +134,7 @@ func (c *Client) QueryJob(query string) (*QueryJobResponse, error) {
 	resp := QueryJobResponse{}
 	err = json.Unmarshal(b, &resp)
 	if err != nil {
+		err = parseError(b)
 		fmt.Println(string(b))
 		return nil, err
 	}
