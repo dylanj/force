@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/url"
 )
@@ -132,6 +133,7 @@ func (c *Client) QueryJob(query string) (*QueryJobResponse, error) {
 	resp := QueryJobResponse{}
 	err = json.Unmarshal(b, &resp)
 	if err != nil {
+		fmt.Println(string(b))
 		return nil, err
 	}
 
