@@ -166,7 +166,10 @@ func (c Client) GetAllJobs() (*QueryAllJobsResponse, error) {
 
 func parseError(b []byte) error {
 	e := []ErrorResponse{}
-	json.Unmarshal(b, &e)
+	err := json.Unmarshal(b, &e)
+	if err != nil {
+		return err
+	}
 
 	// todo: better error handling
 	if e[0].ErrorCode == "INVALID_SESSION_ID" {
