@@ -113,6 +113,7 @@ func (c *Client) QueryJobStatus(jobId string) (*QueryJobResponse, error) {
 	resp := QueryJobResponse{}
 	err = json.Unmarshal(b, &resp)
 	if err != nil {
+		err = parseError(b)
 		return nil, err
 	}
 
