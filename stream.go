@@ -34,17 +34,9 @@ type streamResponse struct {
 		Timeout   int    `json:"timeout"`
 		Reconnect string `json:"reconnect"`
 	} `json:"advice"`
-	Error      string       `json:"error"`
-	Successful bool         `json:"successful"`
-	Data       *DataMessage `json:"data"`
-}
-
-type DataMessage struct {
-	Schema  string           `json:"schema"`
-	Payload *json.RawMessage `json:"payload"`
-	Event   struct {
-		ReplayId int `json:"replayId"`
-	} `json:"event"`
+	Data       *StreamMessage `json:"data"`
+	Error      string         `json:"error"`
+	Successful bool           `json:"successful"`
 }
 
 type handshakeResponse struct {
@@ -52,22 +44,23 @@ type handshakeResponse struct {
 		Replay        bool `json:"replay"`
 		PayloadFormat bool `json:"payload.format"`
 	} `json:"ext"`
+	Version                  string   `json:"version"`
 	MinimumVersion           string   `json:"minimumVersion"`
 	ClientID                 string   `json:"clientId"`
 	SupportedConnectionTypes []string `json:"supportedConnectionTypes"`
 	Channel                  string   `json:"channel"`
-	Version                  string   `json:"version"`
 	Successful               bool     `json:"successful"`
 }
 
-type StreamingMessage struct {
-	Payload  json.RawMessage
-	ReplayId uint
+type StreamMessage struct {
+	Schema  string           `json:"schema"`
+	Payload *json.RawMessage `json:"payload"`
+	Event   struct {
+		ReplayId int `json:"replayId"`
+	} `json:"event"`
 }
 
 type StreamingClient struct {
-	messages chan (StreamingMessage)
-
 	channel    string
 	sf         *Client
 	httpClient *http.Client
@@ -169,7 +162,6 @@ func newStreamingClient(sf *Client, channel string, replayId int) StreamingClien
 	return StreamingClient{
 		channel:    channel,
 		replayId:   replayId,
-		messages:   make(chan StreamingMessage),
 		httpClient: &httpClient,
 		sf:         sf,
 	}
@@ -201,7 +193,7 @@ func (c *StreamingClient) begin() error {
 	return nil
 }
 
-func (c *StreamingClient) poll(handler func(m *DataMessage) error) {
+func (c *StreamingClient) poll(handler func(m *StreamMessage) error) {
 	for {
 		cr, err := c.connect()
 		if err != nil {
@@ -220,7 +212,7 @@ func (c *StreamingClient) poll(handler func(m *DataMessage) error) {
 	fmt.Println("done")
 }
 
-func (sfc *Client) Subscribe(channel string, replayId int, handler func(m *DataMessage) error) error {
+func (sfc *Client) Subscribe(channel string, replayId int, handler func(m *StreamMessage) error) error {
 	c := newStreamingClient(sfc, channel, replayId)
 	err := c.begin() // handshake, connect, subscribe
 	if err != nil {
