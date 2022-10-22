@@ -27,13 +27,14 @@ type extensions struct {
 	Replay map[string]int `json:"replay,omitempty"`
 }
 
-type connectionResponse struct {
+type streamResponse struct {
 	ClientID string `json:"clientId"`
 	Advice   *struct {
 		Interval  int    `json:"interval"`
 		Timeout   int    `json:"timeout"`
 		Reconnect string `json:"reconnect"`
 	} `json:"advice"`
+	Error      string       `json:"error"`
 	Successful bool         `json:"successful"`
 	Data       *DataMessage `json:"data"`
 }
@@ -100,7 +101,7 @@ func (c *StreamingClient) post(payload any) ([]byte, error) {
 	return c.sf.postWithClient(c.httpClient, cometdpath, payload)
 }
 
-func (c *StreamingClient) connect() ([]*connectionResponse, error) {
+func (c *StreamingClient) connect() ([]*streamResponse, error) {
 	connectMessage := connectionRequest{
 		Channel:        "/meta/connect",
 		ClientID:       c.clientId,
@@ -109,13 +110,13 @@ func (c *StreamingClient) connect() ([]*connectionResponse, error) {
 
 	b, err := c.post(connectMessage)
 	if err != nil {
-		return []*connectionResponse{}, err
+		return []*streamResponse{}, err
 	}
 
-	r := []*connectionResponse{}
+	r := []*streamResponse{}
 	err = json.Unmarshal(b, &r)
 	if err != nil {
-		return []*connectionResponse{}, err
+		return []*streamResponse{}, err
 	}
 
 	return r, nil
@@ -139,20 +140,22 @@ func (c *StreamingClient) subscribe(channel string, replayId int) error {
 		return err
 	}
 
-	r := []*connectionResponse{}
+	r := []*streamResponse{}
 	err = json.Unmarshal(b, &r)
 	if err != nil {
 		return err
 	}
 
 	if r[0].Successful == false {
-		return errors.New("invalid subscription")
+		return errors.New(r[0].Error)
 	}
 
 	return nil
 }
 
 func newStreamingClient(sf *Client, channel string, replayId int) StreamingClient {
+	// todo: make a copy of the force client, but first refactor the auth so we
+	// can reauth and update all clients
 	cookiejarOptions := cookiejar.Options{
 		PublicSuffixList: publicsuffix.List,
 	}
