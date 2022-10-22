@@ -75,7 +75,7 @@ func (c *Client) QueryJobResults(jobId string, callback func([]map[string]string
 	q.Add("maxRecords", "1000")
 
 	for {
-		path := "/services/data/" + c.version + "/jobs/query/" + jobId + "/results?" + q.Encode()
+		path := "/services/data/v" + c.version + "/jobs/query/" + jobId + "/results?" + q.Encode()
 		b, h, err := c.GetWithHeaders(path)
 
 		if err != nil {
@@ -100,7 +100,7 @@ func (c *Client) QueryJobResults(jobId string, callback func([]map[string]string
 }
 
 func (c *Client) QueryJobStatus(jobId string) (*QueryJobResponse, error) {
-	b, err := c.Get("/services/data/" + c.version + "/jobs/query/" + jobId)
+	b, err := c.Get("/services/data/v" + c.version + "/jobs/query/" + jobId)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +121,7 @@ func (c *Client) QueryJob(query string) (*QueryJobResponse, error) {
 		Query:     query,
 	}
 
-	b, err := c.Post("/services/data/"+c.version+"/jobs/query", q)
+	b, err := c.Post("/services/data/v"+c.version+"/jobs/query", q)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +144,7 @@ type QueryAllJobsResponse struct {
 }
 
 func (c Client) GetAllJobs() (*QueryAllJobsResponse, error) {
-	b, err := c.Get("/services/data/" + c.version + "/jobs/query")
+	b, err := c.Get("/services/data/v" + c.version + "/jobs/query")
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +179,7 @@ type queryJobState struct {
 }
 
 func (c Client) AbortQueryJob(jobId string) (*QueryJobResponse, error) {
-	b, err := c.Patch("/services/data/"+c.version+"/jobs/query/"+jobId, queryJobState{State: "Aborted"})
+	b, err := c.Patch("/services/data/v"+c.version+"/jobs/query/"+jobId, queryJobState{State: "Aborted"})
 	if err != nil {
 		return nil, err
 	}

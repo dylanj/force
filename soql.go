@@ -16,7 +16,7 @@ type QueryResponse struct {
 
 func (c *Client) QueryBasic(q string) ([]QueryRecord, error) {
 	query := strings.ReplaceAll(q, " ", "+")
-	path := "/services/data/" + c.version + "/query/?q=" + query
+	path := "/services/data/v" + c.version + "/query/?q=" + query
 
 	m := QueryResponse{}
 	b, err := c.Get(path)
@@ -35,7 +35,7 @@ func (c *Client) QueryBasic(q string) ([]QueryRecord, error) {
 
 func (c *Client) Explain(q string) ([]QueryPlan, error) {
 	query := strings.ReplaceAll(q, " ", "+")
-	path := "/services/data/" + c.version + "/query/?explain=" + query
+	path := "/services/data/v" + c.version + "/query/?explain=" + query
 
 	m := QueryPlanResponse{}
 	b, err := c.Get(path)

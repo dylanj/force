@@ -108,7 +108,7 @@ func NewClient() Client {
 			Timeout: 30 * time.Second,
 			Jar:     jar,
 		},
-		version: "v56.0",
+		version: "56.0",
 	}
 }
 

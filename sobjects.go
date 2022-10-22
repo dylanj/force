@@ -110,7 +110,7 @@ type SObjectsResponse struct {
 }
 
 func (c Client) DescribeGlobal() ([]SObjectDescription, error) {
-	path := "/services/data/" + c.version + "/sobjects/"
+	path := "/services/data/v" + c.version + "/sobjects/"
 
 	b, err := c.Get(path)
 	if err != nil {
@@ -128,7 +128,7 @@ func (c Client) DescribeGlobal() ([]SObjectDescription, error) {
 }
 
 func (c Client) DescribeSObject(obj string) (SObjectDescription, error) {
-	path := "/services/data/" + c.version + "/sobjects/" + obj + "/describe"
+	path := "/services/data/v" + c.version + "/sobjects/" + obj + "/describe"
 
 	b, err := c.Get(path)
 	if err != nil {

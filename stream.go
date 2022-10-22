@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/cookiejar"
-	"strings"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
@@ -97,10 +96,7 @@ func (c *StreamingClient) handshake() (*handshakeResponse, error) {
 }
 
 func (c *StreamingClient) post(payload any) ([]byte, error) {
-	// hack, we store version as vXX.X for some reason.
-	// todo: fix this.
-	cometdpath := "/cometd/" + strings.Replace(c.sf.version, "v", "", 1)
-
+	cometdpath := "/cometd/" + c.sf.version
 	return c.sf.postWithClient(c.httpClient, cometdpath, payload)
 }
 
