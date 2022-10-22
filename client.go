@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"strings"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
+	"golang.org/x/net/publicsuffix"
 )
 
 type AuthResponse struct {
@@ -96,9 +98,15 @@ func parseAuth(b []byte) (AuthResponse, error) {
 }
 
 func NewClient() Client {
+	cookiejarOptions := cookiejar.Options{
+		PublicSuffixList: publicsuffix.List,
+	}
+	jar, _ := cookiejar.New(&cookiejarOptions)
+
 	return Client{
 		httpClient: http.Client{
 			Timeout: 30 * time.Second,
+			Jar:     jar,
 		},
 		version: "v56.0",
 	}
@@ -143,6 +151,10 @@ func (c *Client) Post(path string, obj any) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Println("debug req:")
+	fmt.Println(string(b))
+	fmt.Println("debug req finished")
 
 	requestBody := bytes.NewReader(b)
 

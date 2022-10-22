@@ -40,11 +40,6 @@ type QueryJobResponse struct {
 	ColumnDelimiter string  `json:"columnDelimiter"`
 }
 
-/*
-"Id","Name"
-"0011r00001zLVT1AAO","Mp6C3GwvHE"
-"0011r00001zLvkCAAS","rAkO8O9krh"
-*/
 func parseResults(b []byte) ([]map[string]string, error) {
 	r := csv.NewReader(bytes.NewReader(b))
 	m := make([]map[string]string, 0)
