@@ -166,7 +166,6 @@ func newStreamingClient(sf *Client, channel string, replayId int) StreamingClien
 		Jar:     jar,
 	}
 
-	fmt.Println("response headers")
 	return StreamingClient{
 		channel:    channel,
 		replayId:   replayId,

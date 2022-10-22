@@ -77,39 +77,31 @@ func main() {
 		return nil
 	})
 
-	/*
-		c.Subscribe("/events/xyz__e", func(data []byte) {
-			// do work with foo bar
-		})
-
-	*/
+	if err != nil {
+		spew.Dump(err)
+	}
 
 	/*
 		var wg sync.WaitGroup // New wait group
-			wg.Add(3)             // Using two goroutines
+		wg.Add(3)             // Using two goroutines
 
-			// go save_page_to_html("https://scrapingbee.com/blog", "blog.html", &wg)
-			//  go save_page_to_html("https://scrapingbee.com/documentation", "documentation.html", &wg)
+		go func() {
+			c.DescribeSObject("Account")
+			fmt.Println("Acc done")
+			wg.Done()
+		}()
+		go func() {
+			c.DescribeSObject("Contact")
+			fmt.Println("Con done")
+			wg.Done()
+		}()
+		go func() {
+			c.DescribeSObject("Opportunity")
+			fmt.Println("Opp done")
+			wg.Done()
+		}()
 
-			// wg.Wait()
-
-			go func() {
-				c.DescribeSObject("Account")
-				fmt.Println("Acc done")
-				wg.Done()
-			}()
-			go func() {
-				c.DescribeSObject("Contact")
-				fmt.Println("Con done")
-				wg.Done()
-			}()
-			go func() {
-				c.DescribeSObject("Opportunity")
-				fmt.Println("Opp done")
-				wg.Done()
-			}()
-
-			wg.Wait()
+		wg.Wait()
 	*/
 	//TestCreateJobAndGetResults(&c)
 
