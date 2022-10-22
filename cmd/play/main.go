@@ -65,7 +65,7 @@ func main() {
 	}
 
 	//c.Subscribe("/event/S5_Sync__e", 17799646, func(m *force.DataMessage) error {
-	c.Subscribe("/event/S5_Sync__e", -2, func(m *force.DataMessage) error {
+	err = c.Subscribe("/event/S5_Sync__e", -2, func(m *force.DataMessage) error {
 		p := S5_Sync__e{}
 		err := json.Unmarshal(*m.Payload, &p)
 		if err != nil {

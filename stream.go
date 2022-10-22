@@ -221,13 +221,14 @@ func (c *StreamingClient) poll(handler func(m *DataMessage) error) {
 	fmt.Println("done")
 }
 
-func (sfc *Client) Subscribe(channel string, replayId int, handler func(m *DataMessage) error) {
+func (sfc *Client) Subscribe(channel string, replayId int, handler func(m *DataMessage) error) error {
 	c := newStreamingClient(sfc, channel, replayId)
 	err := c.begin() // handshake, connect, subscribe
 	if err != nil {
-		return
+		return err
 	}
 	c.poll(handler)
+	return nil
 }
 
 /*
