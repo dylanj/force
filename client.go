@@ -25,7 +25,7 @@ type AuthResponse struct {
 }
 
 type Client struct {
-	httpClient http.Client
+	httpClient *http.Client
 	auth       AuthResponse
 	version    string
 }
@@ -104,7 +104,7 @@ func NewClient() Client {
 	jar, _ := cookiejar.New(&cookiejarOptions)
 
 	return Client{
-		httpClient: http.Client{
+		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 			Jar:     jar,
 		},
@@ -144,17 +144,14 @@ func (c *Client) Patch(path string, obj any) ([]byte, error) {
 	return io.ReadAll(resp.Body)
 }
 
-func (c *Client) Post(path string, obj any) ([]byte, error) {
+// todo: extract auth into own struct, pass that around
+func (c *Client) postWithClient(httpClient *http.Client, path string, obj any) ([]byte, error) {
 	requestURL := c.buildRequestURL(path)
 
 	b, err := json.Marshal(obj)
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println("debug req:")
-	fmt.Println(string(b))
-	fmt.Println("debug req finished")
 
 	requestBody := bytes.NewReader(b)
 
@@ -167,13 +164,17 @@ func (c *Client) Post(path string, obj any) ([]byte, error) {
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", "Bearer "+c.auth.AccessToken)
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		fmt.Printf("client: error making http request: %s\n", err)
 		return []byte{}, nil
 	}
 
 	return io.ReadAll(resp.Body)
+}
+
+func (c *Client) Post(path string, obj any) ([]byte, error) {
+	return c.postWithClient(c.httpClient, path, obj)
 }
 
 func (c *Client) Get(path string) ([]byte, error) {

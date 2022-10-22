@@ -2,35 +2,16 @@ package force
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net/http"
+	"net/http/cookiejar"
 	"strings"
+	"time"
 
 	"github.com/davecgh/go-spew/spew"
+	"golang.org/x/net/publicsuffix"
 )
-
-type streamingChannel struct {
-}
-
-/*
-{
-"data": {
-"schema": "dffQ2QLzDNHqwB8_sHMxdA",
-"payload": {
-"CreatedDate": "2017-04-09T18:31:40.517Z",
-"CreatedById": "005D0000001cSZs",
-"Printer_Model__c": "XZO-5",
-"Serial_Number__c": "12345",
-"Ink_Percentage__c": 0.2
-},
-"event": {
-"replayId": 2
-}
-},
-"channel": "/event/Low_Ink__e"
-}
-*/
-
-//subscribeParams := `{ "channel": "/meta/subscribe", "clientID": "` + forceAPI.stream.ClientID + `", "subscription": "` + eventString + `"}`
 
 type connectionRequest struct {
 	Channel                  string   `json:"channel"`
@@ -49,12 +30,21 @@ type extensions struct {
 
 type connectionResponse struct {
 	ClientID string `json:"clientId"`
-	Advice   struct {
+	Advice   *struct {
 		Interval  int    `json:"interval"`
 		Timeout   int    `json:"timeout"`
 		Reconnect string `json:"reconnect"`
 	} `json:"advice"`
-	Successful bool `json:"successful"`
+	Successful bool         `json:"successful"`
+	Data       *DataMessage `json:"data"`
+}
+
+type DataMessage struct {
+	Schema  string           `json:"schema"`
+	Payload *json.RawMessage `json:"payload"`
+	Event   struct {
+		ReplayId int `json:"replayId"`
+	} `json:"event"`
 }
 
 type handshakeResponse struct {
@@ -71,18 +61,18 @@ type handshakeResponse struct {
 }
 
 type StreamingMessage struct {
-	Payload  []byte
+	Payload  json.RawMessage
 	ReplayId uint
-	Channel  string
 }
 
 type StreamingClient struct {
-	handler  func(StreamingMessage) error
 	messages chan (StreamingMessage)
 
-	sf       *Client
-	clientId string
-	replayId int
+	channel    string
+	sf         *Client
+	httpClient *http.Client
+	clientId   string
+	replayId   int
 }
 
 func (c *StreamingClient) handshake() (*handshakeResponse, error) {
@@ -106,23 +96,15 @@ func (c *StreamingClient) handshake() (*handshakeResponse, error) {
 	return &h[0], nil
 }
 
-func (c *StreamingClient) Poll() {
-	for {
-		//r, err := c.connect()
-	}
-}
-
 func (c *StreamingClient) post(payload any) ([]byte, error) {
 	// hack, we store version as vXX.X for some reason.
 	// todo: fix this.
 	cometdpath := "/cometd/" + strings.Replace(c.sf.version, "v", "", 1)
 
-	//c.sf.auth
-
-	return c.sf.Post(cometdpath, payload)
+	return c.sf.postWithClient(c.httpClient, cometdpath, payload)
 }
 
-func (c *StreamingClient) connect() (*connectionResponse, error) {
+func (c *StreamingClient) connect() ([]*connectionResponse, error) {
 	connectMessage := connectionRequest{
 		Channel:        "/meta/connect",
 		ClientID:       c.clientId,
@@ -131,73 +113,125 @@ func (c *StreamingClient) connect() (*connectionResponse, error) {
 
 	b, err := c.post(connectMessage)
 	if err != nil {
-		return nil, err
+		return []*connectionResponse{}, err
 	}
 
-	fmt.Println("connect")
-	fmt.Println(string(b))
-
-	r := []connectionResponse{}
+	r := []*connectionResponse{}
 	err = json.Unmarshal(b, &r)
 	if err != nil {
-		return nil, err
+		return []*connectionResponse{}, err
 	}
 
-	return &r[0], nil
+	return r, nil
 }
 
-func (c *StreamingClient) TestConnect() {
-
-	h, err := c.handshake()
-	spew.Dump(h)
-	if err != nil {
-		spew.Dump(err)
-	}
-
-	c.clientId = h.ClientID
-	fmt.Println("got client id", c.clientId)
-
-	cr, err := c.connect()
-	spew.Dump(cr)
-
-	//		subscribeParams := `{ "channel": "/meta/subscribe", "clientID": "` + forceAPI.stream.ClientID + `", "subscription": "` + topicString + `"}`
-
+func (c *StreamingClient) subscribe(channel string, replayId int) error {
 	replayExt := make(map[string]int)
-	ch := "/event/S5_Sync__e"
-	replayExt[ch] = 17799646
+	replayExt[channel] = replayId
 
 	subscribeRequest := connectionRequest{
 		Channel:      "/meta/subscribe",
 		ClientID:     c.clientId,
-		Subscription: "/event/S5_Sync__e",
+		Subscription: channel,
 		Ext: extensions{
 			Replay: replayExt,
 		},
 	}
 
-	r, err := c.post(subscribeRequest)
-	spew.Dump(err)
-	fmt.Println(string(r))
-	cr, err = c.connect()
-	spew.Dump(cr)
+	b, err := c.post(subscribeRequest)
+	if err != nil {
+		return err
+	}
 
+	r := []*connectionResponse{}
+	err = json.Unmarshal(b, &r)
+	if err != nil {
+		return err
+	}
+
+	if r[0].Successful == false {
+		return errors.New("invalid subscription")
+	}
+
+	return nil
 }
 
-func NewStreamingClient(sf *Client, replayId int, handler func(StreamingMessage) error) StreamingClient {
+func newStreamingClient(sf *Client, channel string, replayId int) StreamingClient {
+	cookiejarOptions := cookiejar.Options{
+		PublicSuffixList: publicsuffix.List,
+	}
+	jar, _ := cookiejar.New(&cookiejarOptions)
+
+	httpClient := http.Client{
+		Timeout: 30 * time.Second,
+		Jar:     jar,
+	}
+
 	fmt.Println("response headers")
 	return StreamingClient{
-		handler:  handler,
-		replayId: replayId,
-		messages: make(chan StreamingMessage),
-		sf:       sf,
+		channel:    channel,
+		replayId:   replayId,
+		messages:   make(chan StreamingMessage),
+		httpClient: &httpClient,
+		sf:         sf,
 	}
 }
 
-/*
-func (c *StreamingClient) Subscribe(channel string, replayId int, handler func(m StreamingMessage) error) {
-	c.handlers[channel] = handler
+func (c *StreamingClient) begin() error {
+	h, err := c.handshake()
+	if err != nil {
+		return err
+	}
+
+	c.clientId = h.ClientID
+
+	cr, err := c.connect()
+	if err != nil {
+		return err
+	}
+
+	timeoutVal := cr[0].Advice.Timeout
+	timeoutDur := time.Duration(timeoutVal) * time.Millisecond
+
+	c.httpClient.Timeout = time.Duration(timeoutDur)
+	// todo: grab advice from connection. timeouts
+
+	err = c.subscribe(c.channel, c.replayId)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
+func (c *StreamingClient) poll(handler func(m *DataMessage) error) {
+	for {
+		cr, err := c.connect()
+		if err != nil {
+			spew.Dump(err)
+			continue
+		}
+		for _, m := range cr {
+			if m.Data != nil {
+				handler(m.Data)
+			} else {
+				fmt.Println("whats going on here")
+				spew.Dump(m)
+			}
+		}
+	}
+	fmt.Println("done")
+}
+
+func (sfc *Client) Subscribe(channel string, replayId int, handler func(m *DataMessage) error) {
+	c := newStreamingClient(sfc, channel, replayId)
+	err := c.begin() // handshake, connect, subscribe
+	if err != nil {
+		return
+	}
+	c.poll(handler)
+}
+
+/*
 func (c *StreamingClient) Start() {
 	//c.connect()
 	for k, v := range c.handlers {
@@ -217,5 +251,4 @@ func (c *StreamingClient) Start() {
 func (c *StreamingClient) consume(m StreamingMessage) {
 	c.messages <- m
 }
-
 */

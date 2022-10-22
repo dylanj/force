@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -46,17 +47,37 @@ func main() {
 		fmt.Println("auth no beuno")
 	}
 
-	sc := force.NewStreamingClient(&c, -1, func(m force.StreamingMessage) error {
+	/*
+		sc := force.NewStreamingClient(&c, -1, func(m force.StreamingMessage) error {
+			fmt.Println("got message")
+			spew.Dump(m)
+			return nil
+		})
+		sc.TestConnect()
+
+	*/
+
+	type S5_Sync__e struct {
+		CreatedById string
+		Type__c     string
+		CreatedDate string
+		Id__c       string
+	}
+
+	//c.Subscribe("/event/S5_Sync__e", 17799646, func(m *force.DataMessage) error {
+	c.Subscribe("/event/S5_Sync__e", -2, func(m *force.DataMessage) error {
+		p := S5_Sync__e{}
+		err := json.Unmarshal(*m.Payload, &p)
+		if err != nil {
+			spew.Dump(err)
+			return err
+		}
 		fmt.Println("got message")
-		spew.Dump(m)
+		spew.Dump(p)
 		return nil
 	})
-	sc.TestConnect()
 
 	/*
-		c.Subscribe("/events/foo_bar__c", func(data []byte) {
-			// do work with foo bar
-		})
 		c.Subscribe("/events/xyz__e", func(data []byte) {
 			// do work with foo bar
 		})
