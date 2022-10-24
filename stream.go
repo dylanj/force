@@ -12,7 +12,23 @@ import (
 	"golang.org/x/net/publicsuffix"
 )
 
-type connectionRequest struct {
+type StreamMessage struct {
+	Schema  string           `json:"schema"`
+	Payload *json.RawMessage `json:"payload"`
+	Event   struct {
+		ReplayId int `json:"replayId"`
+	} `json:"event"`
+}
+
+type StreamingClient struct {
+	channel    string
+	sf         *Client
+	httpClient *http.Client
+	clientId   string
+	replayId   int
+}
+
+type streamRequest struct {
 	Channel                  string   `json:"channel"`
 	Subscription             string   `json:"subscription,omitempty"`
 	ConnectionType           string   `json:"connectionType,omitempty"`
@@ -52,24 +68,39 @@ type handshakeResponse struct {
 	Successful               bool     `json:"successful"`
 }
 
-type StreamMessage struct {
-	Schema  string           `json:"schema"`
-	Payload *json.RawMessage `json:"payload"`
-	Event   struct {
-		ReplayId int `json:"replayId"`
-	} `json:"event"`
+// todo: move this to client.go
+func (sfc *Client) Subscribe(channel string, replayId int, handler func(m *StreamMessage) error) error {
+	c := newStreamingClient(sfc, channel, replayId)
+	err := c.begin() // handshake, connect, subscribe
+	if err != nil {
+		return err
+	}
+	c.poll(handler)
+	return nil
 }
 
-type StreamingClient struct {
-	channel    string
-	sf         *Client
-	httpClient *http.Client
-	clientId   string
-	replayId   int
+// todo: create go thread to handle messages received
+func (c *StreamingClient) poll(handler func(m *StreamMessage) error) {
+	for {
+		cr, err := c.connect()
+		if err != nil {
+			spew.Dump(err)
+			continue
+		}
+		for _, m := range cr {
+			if m.Data != nil {
+				handler(m.Data)
+			} else {
+				fmt.Println("whats going on here")
+				spew.Dump(m)
+			}
+		}
+	}
+	fmt.Println("done")
 }
 
 func (c *StreamingClient) handshake() (*handshakeResponse, error) {
-	msg := connectionRequest{
+	msg := streamRequest{
 		Channel:                  "/meta/handshake",
 		SupportedConnectionTypes: []string{"long-polling"},
 		Version:                  "1.0",
@@ -90,12 +121,11 @@ func (c *StreamingClient) handshake() (*handshakeResponse, error) {
 }
 
 func (c *StreamingClient) post(payload any) ([]byte, error) {
-	cometdpath := "/cometd/" + c.sf.version
-	return c.sf.postWithClient(c.httpClient, cometdpath, payload)
+	return c.sf.postWithClient(c.httpClient, "/cometd/"+c.sf.version, payload)
 }
 
 func (c *StreamingClient) connect() ([]*streamResponse, error) {
-	connectMessage := connectionRequest{
+	connectMessage := streamRequest{
 		Channel:        "/meta/connect",
 		ClientID:       c.clientId,
 		ConnectionType: "long-polling",
@@ -119,7 +149,7 @@ func (c *StreamingClient) subscribe(channel string, replayId int) error {
 	replayExt := make(map[string]int)
 	replayExt[channel] = replayId
 
-	subscribeRequest := connectionRequest{
+	subscribeRequest := streamRequest{
 		Channel:      "/meta/subscribe",
 		ClientID:     c.clientId,
 		Subscription: channel,
@@ -184,41 +214,11 @@ func (c *StreamingClient) begin() error {
 	timeoutDur := time.Duration(timeoutVal) * time.Millisecond
 
 	c.httpClient.Timeout = time.Duration(timeoutDur)
-	// todo: grab advice from connection. timeouts
 
 	err = c.subscribe(c.channel, c.replayId)
 	if err != nil {
 		return err
 	}
-	return nil
-}
-
-func (c *StreamingClient) poll(handler func(m *StreamMessage) error) {
-	for {
-		cr, err := c.connect()
-		if err != nil {
-			spew.Dump(err)
-			continue
-		}
-		for _, m := range cr {
-			if m.Data != nil {
-				handler(m.Data)
-			} else {
-				fmt.Println("whats going on here")
-				spew.Dump(m)
-			}
-		}
-	}
-	fmt.Println("done")
-}
-
-func (sfc *Client) Subscribe(channel string, replayId int, handler func(m *StreamMessage) error) error {
-	c := newStreamingClient(sfc, channel, replayId)
-	err := c.begin() // handshake, connect, subscribe
-	if err != nil {
-		return err
-	}
-	c.poll(handler)
 	return nil
 }
 
