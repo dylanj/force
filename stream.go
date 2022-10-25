@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/cookiejar"
+	"os"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"

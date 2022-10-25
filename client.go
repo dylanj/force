@@ -7,94 +7,31 @@ import (
 	"io"
 	"net/http"
 	"net/http/cookiejar"
-	"net/url"
-	"strings"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	"golang.org/x/net/publicsuffix"
 )
 
-type AuthResponse struct {
-	AccessToken string `json:"access_token"`
-	InstanceURL string `json:"instance_url"`
-	Id          string `json:"id"`
-	TokenType   string `json:"token_type"`
-	IssuedAt    string `json:"issued_at"`
-	Signature   string `json:"signature"`
-}
-
 type Client struct {
 	httpClient *http.Client
-	auth       AuthResponse
+	auth       *AuthResponse
 	version    string
 }
 
-func (c *Client) AuthToken(instance, token string) (bool, error) {
-	c.auth = AuthResponse{
-		AccessToken: token,
-		InstanceURL: instance,
-	}
-
-	return true, nil
-}
-
-func (c *Client) Auth(host, username, password, token, clientId, clientSecret string) (bool, error) {
-	q := url.Values{}
-	q.Add("grant_type", "password")
-	q.Add("client_id", clientId)
-	q.Add("client_secret", clientSecret)
-	q.Add("username", username)
-	q.Add("password", password+token)
-
-	u := url.URL{}
-	u.Scheme = "https"
-	u.Host = host
-	u.Path = "/services/oauth2/token"
-
-	requestURL := u.String()
-	fmt.Println("full url", requestURL)
-	fmt.Println("params", q.Encode())
-
-	req, err := http.NewRequest(http.MethodPost, requestURL, strings.NewReader(q.Encode()))
+func (c *Client) Auth(auth authenticator) error {
+	ar, err := auth.Authenticate()
 	if err != nil {
-		fmt.Printf("client: could not create request: %s\n", err)
-		return false, err
+		return err
 	}
 
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	c.auth = ar
 
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		fmt.Printf("client: error making http request: %s\n", err)
-		return false, nil
-	}
-
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-
-	if err != nil {
-		return false, nil
-	}
-
-	a, err := parseAuth(body)
-	if err != nil {
-		return false, err
-	}
-
-	c.auth = a
-
-	return true, nil
+	return nil
 }
 
 func (c *Client) DebugAuth() {
 	spew.Dump(c.auth)
-}
-
-func parseAuth(b []byte) (AuthResponse, error) {
-	a := AuthResponse{}
-	err := json.Unmarshal(b, &a)
-	return a, err
 }
 
 func NewClient() Client {

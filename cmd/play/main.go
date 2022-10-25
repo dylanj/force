@@ -20,7 +20,7 @@ func main() {
 	salesforce_client_id := os.Getenv("SALESFORCE_CLIENT_ID")
 	salesforce_client_secret := os.Getenv("SALESFORCE_CLIENT_SECRET")
 
-	ok, err := c.Auth(
+	auth, err := force.AuthUserPass(
 		salesforce_host,
 		salesforce_username,
 		salesforce_password,
@@ -29,42 +29,17 @@ func main() {
 		salesforce_client_secret,
 	)
 
-	spew.Dump(err)
-	/*
-		//c.DebugAuth()
-		token := os.Getenv("TOKEN")
-		instance := os.Getenv("INSTANCE")
-
-		ok, err := c.AuthToken(instance, token)
-		if err != nil {
-			os.Exit(0)
-		}
-	*/
-
-	if ok {
-		fmt.Println("auth success")
-	} else {
-		fmt.Println("auth no beuno")
+	if err != nil {
+		os.Exit(0)
 	}
 
-	/*
-		sc := force.NewStreamingClient(&c, -1, func(m force.StreamingMessage) error {
-			fmt.Println("got message")
-			spew.Dump(m)
-			return nil
-		})
-		sc.TestConnect()
-
-	*/
-
-	type S5_Sync__e struct {
-		CreatedById string
-		Type__c     string
-		CreatedDate string
-		Id__c       string
+	c := force.NewClient()
+	err = c.Auth(auth)
+	if err != nil {
+		spew.Dump(err)
+		return
 	}
 
-	//c.Subscribe("/event/S5_Sync__e", 17799646, func(m *force.StreamMessage) error {
 	err = c.Subscribe("/event/S5_Sync__e", -2, func(m *force.StreamMessage) error {
 		p := S5_Sync__e{}
 		err := json.Unmarshal(*m.Payload, &p)
@@ -72,38 +47,17 @@ func main() {
 			spew.Dump(err)
 			return err
 		}
-		fmt.Println("got message")
+
+		//fmt.Println("got message")
 		spew.Dump(p)
 		return nil
 	})
 
-	if err != nil {
-		spew.Dump(err)
-	}
+}
 
-	/*
-		var wg sync.WaitGroup // New wait group
-		wg.Add(3)             // Using two goroutines
-
-		go func() {
-			c.DescribeSObject("Account")
-			fmt.Println("Acc done")
-			wg.Done()
-		}()
-		go func() {
-			c.DescribeSObject("Contact")
-			fmt.Println("Con done")
-			wg.Done()
-		}()
-		go func() {
-			c.DescribeSObject("Opportunity")
-			fmt.Println("Opp done")
-			wg.Done()
-		}()
-
-		wg.Wait()
-	*/
-	//TestCreateJobAndGetResults(&c)
-
-	//r, err := c.Explain("SELECT Id, Name FROM Account LIMIT 1")
+type S5_Sync__e struct {
+	CreatedById string
+	Type__c     string
+	CreatedDate string
+	Id__c       string
 }
