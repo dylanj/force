@@ -94,7 +94,6 @@ func (c *Client) postWithClient(httpClient *http.Client, path string, obj any) (
 
 	req, err := http.NewRequest(http.MethodPost, requestURL, requestBody)
 	if err != nil {
-		fmt.Printf("client: could not create request: %s\n", err)
 		return []byte{}, err
 	}
 
@@ -121,11 +120,8 @@ func (c *Client) Get(path string) ([]byte, error) {
 func (c *Client) GetWithHeaders(path string) ([]byte, http.Header, error) {
 	requestURL := c.buildRequestURL(path)
 
-	fmt.Println("req:", requestURL)
-
 	req, err := http.NewRequest(http.MethodGet, requestURL, nil)
 	if err != nil {
-		fmt.Printf("client: could not create request: %s\n", err)
 		return []byte{}, http.Header{}, err
 	}
 

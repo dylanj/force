@@ -74,7 +74,7 @@ func (sfc *Client) Subscribe(channel string, replayId int, handler func(m *Strea
 	c := newStreamingClient(sfc, channel, replayId)
 	err := c.begin() // handshake, connect, subscribe
 	if err != nil {
-		return err
+		return fmt.Errorf("subscribe begin failure %w", err)
 	}
 	c.poll(handler)
 	return nil
@@ -84,16 +84,20 @@ func (sfc *Client) Subscribe(channel string, replayId int, handler func(m *Strea
 func (c *StreamingClient) poll(handler func(m *StreamMessage) error) {
 	for {
 		cr, err := c.connect()
+
 		if err != nil {
-			spew.Dump(err)
+			if os.IsTimeout(err) {
+				fmt.Println("~~~disconnect timeout")
+				continue
+			}
+
+			spew.Dump(fmt.Errorf("poll failure %w", err))
 			continue
 		}
+
 		for _, m := range cr {
 			if m.Data != nil {
 				handler(m.Data)
-			} else {
-				fmt.Println("whats going on here")
-				spew.Dump(m)
 			}
 		}
 	}
@@ -101,6 +105,7 @@ func (c *StreamingClient) poll(handler func(m *StreamMessage) error) {
 }
 
 func (c *StreamingClient) handshake() (*handshakeResponse, error) {
+	fmt.Println("~~~handshake")
 	msg := streamRequest{
 		Channel:                  "/meta/handshake",
 		SupportedConnectionTypes: []string{"long-polling"},
@@ -109,13 +114,13 @@ func (c *StreamingClient) handshake() (*handshakeResponse, error) {
 
 	r, err := c.post(msg)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("handshake error: %w", err)
 	}
 
 	h := []handshakeResponse{}
 	err = json.Unmarshal(r, &h)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("handshake unmarshal error: %w", err)
 	}
 
 	return &h[0], nil
@@ -126,6 +131,7 @@ func (c *StreamingClient) post(payload any) ([]byte, error) {
 }
 
 func (c *StreamingClient) connect() ([]*streamResponse, error) {
+	fmt.Println("~~~connect")
 	connectMessage := streamRequest{
 		Channel:        "/meta/connect",
 		ClientID:       c.clientId,
@@ -134,19 +140,20 @@ func (c *StreamingClient) connect() ([]*streamResponse, error) {
 
 	b, err := c.post(connectMessage)
 	if err != nil {
-		return []*streamResponse{}, err
+		return []*streamResponse{}, err //mt.Errorf("connect post error %w", err)
 	}
 
 	r := []*streamResponse{}
 	err = json.Unmarshal(b, &r)
 	if err != nil {
-		return []*streamResponse{}, err
+		return []*streamResponse{}, err // fmt.Errorf("connect json error %w", err)
 	}
 
 	return r, nil
 }
 
 func (c *StreamingClient) subscribe(channel string, replayId int) error {
+	fmt.Println("~~~subscribe", channel)
 	replayExt := make(map[string]int)
 	replayExt[channel] = replayId
 
@@ -161,17 +168,17 @@ func (c *StreamingClient) subscribe(channel string, replayId int) error {
 
 	b, err := c.post(subscribeRequest)
 	if err != nil {
-		return err
+		return fmt.Errorf("subscribe post error %w", err)
 	}
 
 	r := []*streamResponse{}
 	err = json.Unmarshal(b, &r)
 	if err != nil {
-		return err
+		return fmt.Errorf("subscribe unmarshal error %w", err)
 	}
 
 	if r[0].Successful == false {
-		return errors.New(r[0].Error)
+		return fmt.Errorf("subscribe unsuccessful error %w", errors.New(r[0].Error))
 	}
 
 	return nil

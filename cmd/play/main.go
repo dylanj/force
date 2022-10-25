@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 
 	"github.com/dylanj/force"
@@ -12,7 +11,6 @@ import (
 )
 
 func main() {
-	c := force.NewClient()
 	salesforce_host := os.Getenv("SALESFORCE_HOST")
 	salesforce_username := os.Getenv("SALESFORCE_USERNAME")
 	salesforce_password := os.Getenv("SALESFORCE_PASSWORD")
