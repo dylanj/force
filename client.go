@@ -103,8 +103,7 @@ func (c *Client) postWithClient(httpClient *http.Client, path string, obj any) (
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		fmt.Printf("client: error making http request: %s\n", err)
-		return []byte{}, nil
+		return []byte{}, err
 	}
 
 	return io.ReadAll(resp.Body)
@@ -135,8 +134,7 @@ func (c *Client) GetWithHeaders(path string) ([]byte, http.Header, error) {
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		fmt.Printf("client: error making http request: %s\n", err)
-		return []byte{}, http.Header{}, nil
+		return []byte{}, http.Header{}, err
 	}
 
 	b, err := io.ReadAll(resp.Body)
