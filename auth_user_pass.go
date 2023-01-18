@@ -2,6 +2,7 @@ package force
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -64,6 +65,8 @@ func (a *UserPassAuth) Authenticate() (*AuthResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Println(string(b))
 
 	ar := AuthResponse{}
 	err = json.Unmarshal(b, &ar)
