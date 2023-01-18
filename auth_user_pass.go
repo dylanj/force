@@ -2,6 +2,7 @@ package force
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -66,9 +67,21 @@ func (a *UserPassAuth) Authenticate() (*AuthResponse, error) {
 		return nil, err
 	}
 
+	er := authErrorResponse{}
+	err = json.Unmarshal(b, &ar)
+
+	if len(er.Error) > 0 {
+		return nil, errors.New(er.Error + ": " + err.Description)
+	}
+
 	fmt.Println(string(b))
 
 	ar := AuthResponse{}
 	err = json.Unmarshal(b, &ar)
 	return &ar, err
+}
+
+type authErrorResponse struct {
+	Error       string `json:"error"`
+	Description string `json:"error_description"`
 }
