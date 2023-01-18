@@ -71,7 +71,7 @@ func (a *UserPassAuth) Authenticate() (*AuthResponse, error) {
 	err = json.Unmarshal(b, &er)
 
 	if len(er.Error) > 0 {
-		return nil, errors.New(er.Error + ": " + err.Description)
+		return nil, errors.New(er.Error + ": " + er.Description)
 	}
 
 	fmt.Println(string(b))
