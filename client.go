@@ -3,6 +3,7 @@ package force
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -135,5 +136,9 @@ func (c *Client) GetWithHeaders(path string) ([]byte, http.Header, error) {
 
 	b, err := io.ReadAll(resp.Body)
 
-	return b, resp.Header, err
+	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
+		return b, resp.Header, err
+	}
+
+	return b, resp.Header, errors.New(string(b))
 }
