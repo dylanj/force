@@ -3,13 +3,10 @@ package force
 import (
 	b64 "encoding/base64"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
-
-	"github.com/davecgh/go-spew/spew"
 )
 
 type ClientCredentialAuth struct {
@@ -42,8 +39,6 @@ func (a *ClientCredentialAuth) Authenticate() (*AuthResponse, error) {
 	u.Host = a.host
 	u.Path = "/services/oauth2/token"
 
-	spew.Dump(u)
-
 	requestURL := u.String()
 
 	req, err := http.NewRequest(http.MethodPost, requestURL, strings.NewReader(q.Encode()))
@@ -65,8 +60,6 @@ func (a *ClientCredentialAuth) Authenticate() (*AuthResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println(string(b))
 
 	ar := AuthResponse{}
 	err = json.Unmarshal(b, &ar)
